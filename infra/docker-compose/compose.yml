@@ -1,11 +1,51 @@
 name: edge-drift-radar
 
 services:
-  noop:
-    image: alpine:3.20
-    command: [ "sh", "-c", "echo compose up ok && sleep 2" ]
+  redpanda:
+    image: redpandadata/redpanda:v24.1.10
+    command:
+      - redpanda start
+      - --overprovisioned
+      - --smp=1
+      - --memory=1G
+      - --reserve-memory=0M
+      - --node-id=0
+      - --check=false
+    ports:
+      - "9092:9092"      # Kafka API
+      - "9644:9644"      # Admin API
+    networks: [edr-net]
+
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    environment:
+      - POSTGRES_PASSWORD=edrpass
+      - POSTGRES_USER=edr
+      - POSTGRES_DB=edr
+    ports:
+      - "5432:5432"
+    volumes:
+      - tsdata:/var/lib/postgresql/data
+      - ./sql/timescale:/docker-entrypoint-initdb.d:ro
+    networks: [edr-net]
+
+  grafana:
+    image: grafana/grafana:11.0.0
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana:/var/lib/grafana
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - timescaledb
+    networks: [edr-net]
 
 networks:
   edr-net: {}
 
-volumes: {}
+volumes:
+  tsdata: {}
+  grafana: {}
