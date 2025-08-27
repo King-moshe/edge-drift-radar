@@ -1,0 +1,13 @@
+
+# Day 1 skeleton: define services in the next steps (Day 4)
+# Version pinning recommended; Docker Compose v2 syntax
+name: edge-drift-radar
+services:
+  # redpanda: # to be added on Day 4
+  # timescaledb: # to be added on Day 4–5
+  # grafana: # to be added on Day 4
+  # prometheus: # to be added on Day 6
+  # Add networks/volumes as needed
+networks:
+  edr-net: {}
+volumes: {}
