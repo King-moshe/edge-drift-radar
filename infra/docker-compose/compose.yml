@@ -11,31 +11,14 @@ services:
       - --reserve-memory=0M
       - --node-id=0
       - --check=false
-      # ↓ כתובות פנימית/חיצונית
       - --kafka-addr=internal://0.0.0.0:9092,external://0.0.0.0:19092
       - --advertise-kafka-addr=internal://redpanda:9092,external://localhost:19092
     ports:
-      - "9092:9092"      # (לא חובה חיצוני, אבל נשאיר)
-      - "19092:19092"    # Kafka API חיצוני שמפורסם כ-localhost:19092
-      - "9644:9644"      # Admin API
+      - "9092:9092"
+      - "19092:19092"
+      - "9644:9644"
     networks: [edr-net]
 
-  # redpanda:
-  #   image: redpandadata/redpanda:v24.1.10
-  #   command:
-  #     - redpanda start
-  #     - --overprovisioned
-  #     - --smp=1
-  #     - --memory=1G
-  #     - --reserve-memory=0M
-  #     - --node-id=0
-  #     - --check=false
-  #   ports:
-  #     - "9092:9092"      # Kafka API
-  #     - "9644:9644"      # Admin API
-  #   networks: [edr-net]
-
-  # One-shot init to create topic if missing
   rpk-init:
     image: redpandadata/redpanda:v24.1.10
     depends_on: [redpanda]
@@ -43,12 +26,10 @@ services:
     command: |
       "
       set -e
-      echo '⏳ waiting for redpanda...'
       for i in {1..30}; do
         rpk cluster info --brokers=redpanda:9092 && break || sleep 1
       done
       rpk topic create edr.telemetry --brokers=redpanda:9092 || true
-      echo '✅ topic ready'
       "
     networks: [edr-net]
 
@@ -62,7 +43,7 @@ services:
       - "5432:5432"
     volumes:
       - tsdata:/var/lib/postgresql/data
-      - ./sql/timescale:/docker-entrypoint-initdb.d:ro
+      -  ../../sql/timescale:/docker-entrypoint-initdb.d:ro
     networks: [edr-net]
 
   grafana:
@@ -101,9 +82,15 @@ services:
       - BOOTSTRAP_SERVERS=redpanda:9092
       - TOPIC=edr.telemetry
       - GROUP_ID=edr-consumer
+      - PGHOST=timescaledb
+      - PGPORT=5432
+      - PGUSER=edr
+      - PGPASSWORD=edrpass
+      - PGDATABASE=edr
     depends_on:
       - redpanda
       - rpk-init
+      - timescaledb
     networks: [edr-net]
 
 networks:
