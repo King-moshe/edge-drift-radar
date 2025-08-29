@@ -4,11 +4,12 @@ datasources:
     type: postgres
     access: proxy
     url: timescaledb:5432
-    database: edr
     user: edr
     secureJsonData:
       password: edrpass
+    database: edr
+    isDefault: true
     jsonData:
-      sslmode: disable
-      postgresVersion: 1600
+      sslmode: disable          # no SSL in docker network
+      postgresVersion: 1600     # PG 16
       timescaledb: true
